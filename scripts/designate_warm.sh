@@ -1,0 +1,1 @@
+for i in  mktorders-380 mktorders-385 mktorders-390 mktorders-395 mktorders-400 mktorders-405 mktorders-410 mktorders-415 mktorders-420; do  echo "curl -XPUT -H \"Content-Type: application/json\" localhost:9200/$i/_settings -d'{\"index.routing.allocation.include.box_type\":\"warm\"}'"; done;

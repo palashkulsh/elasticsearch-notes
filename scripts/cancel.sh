@@ -1,0 +1,1 @@
+for i in Pd-ZhGzlSqmdJ9N_R3UWUg:4853592 Sg-IPfCcRaKiD2Tm3lxqXw:5445913 G78YGQBuTsKwIcJpMQeDbQ:43595072 Pd-ZhGzlSqmdJ9N_R3UWUg:4858258 CpQy288ITiy_QEIERnLDWw:35313621 Pd-ZhGzlSqmdJ9N_R3UWUg:4861769 Sg-IPfCcRaKiD2Tm3lxqXw:5470796; do echo "curl -XPOST localhost:9200/_tasks/"$i"/_cancel" ; done;
