@@ -26,6 +26,33 @@ from curlify import to_curl
 import json
 from json2html import *
 
+import requests
+import json
+import argparse
+import time
+import logging
+from tqdm import tqdm
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+# API call throttling
+class APIThrottle:
+    def __init__(self, calls_per_second):
+        self.calls_per_second = calls_per_second
+        self.last_call = 0
+
+    def wait(self):
+        current_time = time.time()
+        time_since_last_call = current_time - self.last_call
+        if time_since_last_call < 1 / self.calls_per_second:
+            time.sleep((1 / self.calls_per_second) - time_since_last_call)
+        self.last_call = time.time()
+
+throttle = APIThrottle(10)  # Limit to 10 calls per second
+
+
 def getAllIndices(cluster_url="http://localhost:9200"):
     indices = []
     url = "{}/_cat/indices?format=json".format(cluster_url)
@@ -134,7 +161,7 @@ def gatherIndexLevelData(cluster_url="http://localhost:9200"):
     indices = getAllIndices(cluster_url)
     # print(indices)
     index_data = {}    
-    for index in indices:
+    for index in tqdm(indices, desc="Processing indices"):
         index_level_settings = getIndexLevelSettings(index, cluster_url)
         index_level_details = getIndexDetails(index, cluster_url)
         # put the data in json dict
@@ -250,7 +277,7 @@ def getShardLevelData(cluster_url="http://localhost:9200"):
 def analyzeShardLevelDetails(cluster_url="http://localhost:9200"):
     shards = getShardLevelData(cluster_url)
     shard_wise = []
-    for shard in shards:        
+    for shard in tqdm(shards, 'Processing shards'):        
         # check shard store does not exist
         if not shard.get('store'):
             store_size = 0
@@ -345,7 +372,7 @@ if yes then call allocation explain api to get the reason why shard is in unassi
 def analyseUnassignedShards(cluster_url="http://localhost:9200"):
     shards = getShardLevelData(cluster_url)
     unassigned_shards = []
-    for shard in shards:
+    for shard in tqdm(shards, 'Analysing unassigned shards'):
         if shard['state'] == 'UNASSIGNED':
             temp = {}
             temp['type'] = 'shard_level'
@@ -525,7 +552,7 @@ def analyzeAllNodeLevelDetails(cluster_url="http://localhost:9200"):
     total_indices = getAllIndices(cluster_url)
 
     node_data = []
-    for node in nodes:
+    for node in tqdm(nodes, desc="Analyzing nodes"):
         # identify what to analyse at node level
         heap_percent = heapAllocationPercentage(node)
         if(heap_percent < 40):
@@ -923,14 +950,87 @@ def analyzeClusterLevelDetails(cluster_url="http://localhost:9200"):
         
     return cluster_data
     
-# take cluster url from command line as input --cluster_url and parse them
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument("--cluster_url", help="provide cluster url")
-args = parser.parse_args()
-print(args.cluster_url)
 
 
+def generate_html_report(all_level_data):
+    html = """
+    <html>
+    <head>
+        <title>ES Health Check</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .level, .category, .issue { margin-left: 20px; }
+            .toggle { cursor: pointer; user-select: none; }
+            .toggle::before { content: '▶ '; }
+            .toggle.open::before { content: '▼ '; }
+            .content { display: none; }
+            .content.show { display: block; }
+            .issue { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
+            .warning { background-color: #fff3cd; }
+            .alert { background-color: #f8d7da; }
+            .recommendation { background-color: #d4edda; }
+            .occurrence { margin-top: 10px; padding-left: 20px; border-left: 3px solid #007bff; }
+        </style>
+        <script>
+            function toggle(el) {
+                el.classList.toggle('open');
+                el.nextElementSibling.classList.toggle('show');
+            }
+        </script>
+    </head>
+    <body>
+        <h1>Elasticsearch Health Check Report</h1>
+    """
+
+    for level, issues in all_level_data.items():
+        if issues:
+            html += f"<div class='level'>"
+            html += f"<h2 class='toggle' onclick='toggle(this)'>{level.replace('_', ' ').title()}</h2>"
+            html += f"<div class='content'>"
+            
+            categories = {}
+            for issue in issues:
+                category = issue.get('callout_name', 'Other')
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append(issue)
+            
+            for category, category_issues in categories.items():
+                html += f"<div class='category'>"
+                html += f"<h3 class='toggle' onclick='toggle(this)'>{category.replace('_', ' ').title()} ({len(category_issues)})</h3>"
+                html += f"<div class='content'>"
+                
+                unique_messages = {}
+                for issue in category_issues:
+                    message = issue.get('message', '')
+                    if message not in unique_messages:
+                        unique_messages[message] = []
+                    unique_messages[message].append(issue)
+                
+                for message, occurrences in unique_messages.items():
+                    html += f"<div class='issue {occurrences[0].get('callout_type', '')}'>"
+                    html += f"<p><strong>Message:</strong> {message}</p>"
+                    html += f"<p><strong>Occurrences:</strong> {len(occurrences)}</p>"
+                    html += f"<div class='toggle' onclick='toggle(this)'>Show Details</div>"
+                    html += f"<div class='content'>"
+                    for occurrence in occurrences:
+                        html += f"<div class='occurrence'>"
+                        for key, value in occurrence.items():
+                            if key not in ['message', 'callout_type', 'callout_name']:
+                                html += f"<p><strong>{key}:</strong> {value}</p>"
+                        html += "</div>"
+                    html += "</div>"
+                    html += "</div>"
+                
+                html += "</div></div>"
+            
+            html += "</div></div>"
+
+    html += """
+    </body>
+    </html>
+    """
+    return html
 
 # print(gatherIndexLevelData(args.cluster_url))
 # print(getIndexLevelSettings('mktorders-10005', args.cluster_url))
@@ -940,30 +1040,47 @@ print(args.cluster_url)
 
 # keep appending recommmendations from all analyzers into an array
 
-node_level = analyzeAllNodeLevelDetails(args.cluster_url)
-shard_level = analyzeShardLevelDetails(args.cluster_url)
-cluster_level = analyzeClusterLevelDetails(args.cluster_url)
-index_level = analyzeIndexLevelDetails(args.cluster_url)
-unassigned_shard_data  = analyseUnassignedShards(args.cluster_url)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cluster_url", help="provide cluster url")
+    args = parser.parse_args()
 
-# put all the level data in single dic
-all_level_data = {}
-all_level_data['node_level'] = node_level
-all_level_data['shard_level'] = shard_level
-all_level_data['cluster_level'] = cluster_level
-all_level_data['index_level'] = index_level
-all_level_data['unassigned_shard_data'] = unassigned_shard_data
+    logging.info(f"Starting ES health check for cluster: {args.cluster_url}")
 
+    with tqdm(total=5, desc="Overall Progress") as pbar:
+        node_level = analyzeAllNodeLevelDetails(args.cluster_url)
+        pbar.update(1)
 
-print(json.dumps(all_level_data, indent=4))
-str = json2html.convert(json = all_level_data)
+        shard_level = analyzeShardLevelDetails(args.cluster_url)
+        pbar.update(1)
 
-# write str to a file with html headers and put str in body
-html_str = "<html><head><title>ES Health Check</title></head><body>{}</body></html>".format(str)
-f = open("es_health_check.html", "w")
-f.write(html_str)
-f.close()
+        cluster_level = analyzeClusterLevelDetails(args.cluster_url)
+        pbar.update(1)
 
+        index_level = analyzeIndexLevelDetails(args.cluster_url)
+        pbar.update(1)
+
+        unassigned_shard_data = analyseUnassignedShards(args.cluster_url)
+        pbar.update(1)
+
+    all_level_data = {
+        'node_level': node_level,
+        'shard_level': shard_level,
+        'cluster_level': cluster_level,
+        'index_level': index_level,
+        'unassigned_shard_data': unassigned_shard_data
+    }
+
+    logging.info("Generating HTML report...")
+    html_str = generate_html_report(all_level_data)
+
+    with open("es_health_check.html", "w") as f:
+        f.write(html_str)
+
+    logging.info("ES health check completed. Report saved as es_health_check.html")
+
+if __name__ == "__main__":
+    main()
 
 # print(analyzeIndexLevelData(args.cluster_url))
 
