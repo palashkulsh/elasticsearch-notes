@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elasticsearch Cluster Health Check Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .feature-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .feature-list li {
+            margin-bottom: 10px;
+            padding-left: 25px;
+            position: relative;
+        }
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #27ae60;
+        }
+        .check-list {
+            padding-left: 20px;
+        }
+        .check-list li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Elasticsearch Cluster Health Check Tool</h1>
+
+    <div class="section">
+        <h2>Overview</h2>
+        <p>
+            The Elasticsearch Cluster Health Check Tool is a comprehensive Python script designed to analyze and report on the health and configuration of your Elasticsearch cluster. It performs a wide range of checks at various levels - cluster, node, index, and shard - to identify potential issues, misconfigurations, and areas for optimization.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Key Features</h2>
+        <ul class="feature-list">
+            <li>Comprehensive cluster analysis</li>
+            <li>Multi-level checks (cluster, node, index, shard)</li>
+            <li>Identification of misconfigurations and potential issues</li>
+            <li>Performance optimization recommendations</li>
+            <li>Interactive HTML report generation</li>
+            <li>Progress tracking and logging</li>
+            <li>API call throttling to minimize cluster impact</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Checks Performed</h2>
+        
+        <h3>Cluster Level Checks</h3>
+        <ul class="check-list">
+            <li>Number of data nodes (recommends at least 2)</li>
+            <li>Cluster routing allocation settings</li>
+            <li>Maximum index transfer speed</li>
+            <li>Cluster-wide configuration settings</li>
+        </ul>
+
+        <h3>Node Level Checks</h3>
+        <ul class="check-list">
+            <li>Heap allocation percentage (recommends 40-50% of RAM)</li>
+            <li>Number of indices relative to master node heap size</li>
+            <li>Node roles and distribution</li>
+        </ul>
+
+        <h3>Index Level Checks</h3>
+        <ul class="check-list">
+            <li>Replication factor (warns if 0)</li>
+            <li>Refresh interval settings</li>
+            <li>Number of shards</li>
+            <li>Index health status</li>
+            <li>Index state (open/close)</li>
+        </ul>
+
+        <h3>Shard Level Checks</h3>
+        <ul class="check-list">
+            <li>Shard size distribution (recommends between 10GB and 50GB)</li>
+            <li>Unassigned shards and reasons for unassignment</li>
+            <li>Shard allocation across nodes</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Output</h2>
+        <p>
+            The script generates an interactive HTML report that categorizes and summarizes all identified issues and recommendations. The report is hierarchically organized, allowing users to drill down into specific areas of concern. Each unique issue is presented once, with the ability to expand and view all occurrences, preventing information overload while still providing detailed insights when needed.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Benefits</h2>
+        <ul class="feature-list">
+            <li>Proactive identification of potential cluster issues</li>
+            <li>Optimization of cluster performance and resource utilization</li>
+            <li>Simplified cluster maintenance and troubleshooting</li>
+            <li>Improved cluster stability and reliability</li>
+            <li>Time-saving automated analysis</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Usage</h2>
+        <p>
+            The script is easy to use and can be run with a simple command, specifying the Elasticsearch cluster URL:
+        </p>
+        <pre><code>python es_health_check.py --cluster_url http://your-elasticsearch-cluster:9200</code></pre>
+        <p>
+            The script provides real-time progress updates and generates a comprehensive HTML report upon completion.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Conclusion</h2>
+        <p>
+            The Elasticsearch Cluster Health Check Tool is an invaluable asset for any organization using Elasticsearch. By providing deep insights into cluster health and configuration, it enables proactive management, optimization, and maintenance of Elasticsearch clusters, ultimately leading to improved performance, stability, and reliability.
+        </p>
+    </div>
+</body>
+</html>
